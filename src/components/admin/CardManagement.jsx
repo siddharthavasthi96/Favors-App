@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, getDocs, addDoc, updateDoc, doc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, addDoc, updateDoc, deleteDoc, doc, query, orderBy } from 'firebase/firestore';
 import QRCode from 'qrcode';
 import jsPDF from 'jspdf';
 
@@ -14,7 +14,7 @@ function CardManagement() {
   const [formData, setFormData] = useState({
     title: '',
     to: '',
-    amount: 5,
+    amount: 20,
     expiresAt: ''
   });
 
@@ -120,7 +120,7 @@ function CardManagement() {
       });
 
       setSuccess('Card created successfully!');
-      setFormData({ title: '', to: '', amount: 5, expiresAt: '' });
+      setFormData({ title: '', to: '', amount: 20, expiresAt: '' });
       setShowCreateForm(false);
       
       // Generate PDF for the new card
@@ -157,6 +157,30 @@ function CardManagement() {
     } catch (err) {
       console.error('Error revoking card:', err);
       setError('Error revoking card.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteCard = async (cardId) => {
+    if (!confirm('Are you sure you want to permanently delete this card? This action cannot be undone.')) return;
+    
+    try {
+      setLoading(true);
+      await deleteDoc(doc(db, 'cards', cardId));
+      
+      // Create event log
+      await addDoc(collection(db, 'events'), {
+        type: 'cardDeleted',
+        data: { cardId },
+        timestamp: new Date().toISOString()
+      });
+
+      setSuccess('Card deleted successfully!');
+      fetchCards();
+    } catch (err) {
+      console.error('Error deleting card:', err);
+      setError('Error deleting card.');
     } finally {
       setLoading(false);
     }
@@ -204,14 +228,18 @@ function CardManagement() {
             </div>
 
             <div className="form-group">
-              <label>Amount (Number of Assignments) *</label>
+              <label>Amount (in $) *</label>
               <input
                 type="number"
-                min="1"
+                min="5"
+                step="5"
                 value={formData.amount}
                 onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
                 required
               />
+              <small style={{ display: 'block', marginTop: '4px', color: '#666' }}>
+                Increments of $5. ($5 = 0.25, $10 = 0.5, $20 = 1 assignment)
+              </small>
             </div>
 
             <div className="form-group">
@@ -262,7 +290,7 @@ function CardManagement() {
                 <tr key={card.id} style={isExpired ? { opacity: 0.6 } : {}}>
                   <td>{card.title}</td>
                   <td>{card.to}</td>
-                  <td>{card.amount} assignments</td>
+                  <td>${card.amount} ({(card.amount / 20).toFixed(2)} assignments)</td>
                   <td>
                     <span className={`badge badge-${card.status}`}>
                       {card.status.toUpperCase()}
@@ -295,6 +323,15 @@ function CardManagement() {
                         style={{ padding: '6px 12px', fontSize: '14px' }}
                       >
                         Revoke
+                      </button>
+                    )}
+                    {card.status === 'revoked' && (
+                      <button 
+                        className="btn btn-danger"
+                        onClick={() => handleDeleteCard(card.id)}
+                        style={{ padding: '6px 12px', fontSize: '14px' }}
+                      >
+                        Delete
                       </button>
                     )}
                   </div>

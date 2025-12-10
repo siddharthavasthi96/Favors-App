@@ -16,7 +16,7 @@ function QRScanPage() {
   const [formData, setFormData] = useState({
     class: '',
     assignmentType: '',
-    amountRequested: 1,
+    amountRequested: 20,
     promoCode: '',
     phone: '',
     email: ''
@@ -116,10 +116,10 @@ function QRScanPage() {
       return;
     }
 
-    const finalAmount = Math.max(1, formData.amountRequested - promoDiscount);
+    const finalAmount = Math.max(5, formData.amountRequested - promoDiscount);
 
     if (finalAmount > card.amount) {
-      setError(`Insufficient balance. Card has ${card.amount} assignments remaining.`);
+      setError(`Insufficient balance. Card has $${card.amount} remaining.`);
       return;
     }
 
@@ -137,7 +137,7 @@ function QRScanPage() {
       const pendingTotal = pendingSnapshot.docs.reduce((sum, doc) => sum + doc.data().amountRequested, 0);
       
       if (finalAmount + pendingTotal > card.amount) {
-        setError(`Insufficient balance. Card has ${card.amount} assignments, but ${pendingTotal} are pending approval.`);
+        setError(`Insufficient balance. Card has $${card.amount}, but $${pendingTotal} is pending approval.`);
         setLoading(false);
         return;
       }
@@ -241,7 +241,7 @@ function QRScanPage() {
             <h3 style={{ marginBottom: '12px' }}>Card Details</h3>
             <p><strong>Title:</strong> {card.title}</p>
             <p><strong>To:</strong> {card.to}</p>
-            <p><strong>Remaining Balance:</strong> {card.amount} assignments</p>
+            <p><strong>Remaining Balance:</strong> ${card.amount} ({(card.amount / 20).toFixed(2)} assignments)</p>
             <span className={`badge badge-${card.status}`}>
               {card.status.toUpperCase()}
             </span>
@@ -275,15 +275,19 @@ function QRScanPage() {
           </div>
 
           <div className="form-group">
-            <label>Amount Requested *</label>
+            <label>Amount Requested (in $) *</label>
             <input
               type="number"
-              min="1"
-              max={card?.amount || 1}
+              min="5"
+              step="5"
+              max={card?.amount || 5}
               value={formData.amountRequested}
               onChange={(e) => setFormData({ ...formData, amountRequested: parseInt(e.target.value) })}
               required
             />
+            <small style={{ display: 'block', marginTop: '4px', color: '#666' }}>
+              ${formData.amountRequested} = {(formData.amountRequested / 20).toFixed(2)} assignments (increments of $5)
+            </small>
           </div>
 
           <div className="form-group">
@@ -307,7 +311,7 @@ function QRScanPage() {
             </div>
             {promoDiscount > 0 && (
               <p style={{ color: 'green', marginTop: '8px' }}>
-                Discount applied: -{promoDiscount} assignments
+                Discount applied: -${promoDiscount}
               </p>
             )}
           </div>
@@ -338,8 +342,9 @@ function QRScanPage() {
 
           {promoDiscount > 0 && (
             <div style={{ marginBottom: '16px', padding: '12px', background: '#d1ecf1', borderRadius: '4px' }}>
-              <strong>Final Amount:</strong> {Math.max(1, formData.amountRequested - promoDiscount)} assignments
-              (Original: {formData.amountRequested}, Discount: -{promoDiscount})
+              <strong>Final Amount:</strong> ${Math.max(5, formData.amountRequested - promoDiscount)} ({((Math.max(5, formData.amountRequested - promoDiscount)) / 20).toFixed(2)} assignments)
+              <br />
+              <small>(Original: ${formData.amountRequested}, Discount: -${promoDiscount})</small>
             </div>
           )}
 

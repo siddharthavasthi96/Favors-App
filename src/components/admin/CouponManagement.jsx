@@ -11,7 +11,7 @@ function CouponManagement() {
 
   const [formData, setFormData] = useState({
     code: '',
-    discount: 1,
+    discount: 5,
     usesLeft: 10
   });
 
@@ -57,7 +57,7 @@ function CouponManagement() {
       await addDoc(collection(db, 'coupons'), couponData);
 
       setSuccess('Coupon created successfully!');
-      setFormData({ code: '', discount: 1, usesLeft: 10 });
+      setFormData({ code: '', discount: 5, usesLeft: 10 });
       setShowCreateForm(false);
       fetchCoupons();
     } catch (err) {
@@ -115,14 +115,18 @@ function CouponManagement() {
             </div>
 
             <div className="form-group">
-              <label>Discount (Number of Assignments) *</label>
+              <label>Discount (in $) *</label>
               <input
                 type="number"
-                min="1"
+                min="5"
+                step="5"
                 value={formData.discount}
                 onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
                 required
               />
+              <small style={{ display: 'block', marginTop: '4px', color: '#666' }}>
+                Increments of $5
+              </small>
             </div>
 
             <div className="form-group">
@@ -166,7 +170,7 @@ function CouponManagement() {
             {coupons.map(coupon => (
               <tr key={coupon.id}>
                 <td><strong>{coupon.code}</strong></td>
-                <td>{coupon.discount} assignments</td>
+                <td>${coupon.discount}</td>
                 <td>{coupon.usesLeft}</td>
                 <td>{new Date(coupon.createdAt).toLocaleDateString()}</td>
                 <td>

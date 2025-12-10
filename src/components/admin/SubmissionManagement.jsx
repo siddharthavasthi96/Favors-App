@@ -247,10 +247,10 @@ function SubmissionManagement() {
                 <td>{sub.class}</td>
                 <td>{sub.assignmentType}</td>
                 <td>
-                  {sub.amountRequested}
+                  ${sub.amountRequested} ({(sub.amountRequested / 20).toFixed(2)})
                   {sub.promoCode && (
                     <small style={{ display: 'block', color: '#666' }}>
-                      Promo: {sub.promoCode}
+                      Promo: {sub.promoCode} (-${sub.promoDiscount || 0})
                     </small>
                   )}
                 </td>
