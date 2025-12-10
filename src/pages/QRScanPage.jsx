@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { db } from '../firebase';
-import { collection, query, where, getDocs, addDoc, doc, getDoc, updateDoc, increment } from 'firebase/firestore';
+import { collection, query, where, getDocs, addDoc, doc, getDoc, updateDoc, increment, orderBy } from 'firebase/firestore';
 
 function QRScanPage() {
   const navigate = useNavigate();
@@ -125,6 +125,22 @@ function QRScanPage() {
 
     try {
       setLoading(true);
+      
+      // Check for pending submissions that haven't been processed
+      const submissionsRef = collection(db, 'submissions');
+      const pendingQuery = query(
+        submissionsRef, 
+        where('cardId', '==', card.id),
+        where('status', '==', 'pending')
+      );
+      const pendingSnapshot = await getDocs(pendingQuery);
+      const pendingTotal = pendingSnapshot.docs.reduce((sum, doc) => sum + doc.data().amountRequested, 0);
+      
+      if (finalAmount + pendingTotal > card.amount) {
+        setError(`Insufficient balance. Card has ${card.amount} assignments, but ${pendingTotal} are pending approval.`);
+        setLoading(false);
+        return;
+      }
       
       // Create submission
       const submissionData = {

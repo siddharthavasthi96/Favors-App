@@ -14,7 +14,8 @@ function CardManagement() {
   const [formData, setFormData] = useState({
     title: '',
     to: '',
-    amount: 5
+    amount: 5,
+    expiresAt: ''
   });
 
   useEffect(() => {
@@ -105,7 +106,8 @@ function CardManagement() {
         amount: parseInt(formData.amount),
         qrToken: qrToken,
         status: 'active',
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        ...(formData.expiresAt && { expiresAt: new Date(formData.expiresAt).toISOString() })
       };
 
       const cardRef = await addDoc(collection(db, 'cards'), cardData);
@@ -118,7 +120,7 @@ function CardManagement() {
       });
 
       setSuccess('Card created successfully!');
-      setFormData({ title: '', to: '', amount: 5 });
+      setFormData({ title: '', to: '', amount: 5, expiresAt: '' });
       setShowCreateForm(false);
       
       // Generate PDF for the new card
@@ -212,6 +214,19 @@ function CardManagement() {
               />
             </div>
 
+            <div className="form-group">
+              <label>Expiration Date (Optional)</label>
+              <input
+                type="date"
+                value={formData.expiresAt}
+                onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
+                min={new Date().toISOString().split('T')[0]}
+              />
+              <small style={{ display: 'block', marginTop: '4px', color: '#666' }}>
+                Leave empty for no expiration
+              </small>
+            </div>
+
             <button type="submit" className="btn btn-success" disabled={loading}>
               {loading ? 'Creating...' : 'Create Card & Generate PDF'}
             </button>
@@ -236,22 +251,35 @@ function CardManagement() {
               <th>Amount</th>
               <th>Status</th>
               <th>Created</th>
+              <th>Expires</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            {cards.map(card => (
-              <tr key={card.id}>
-                <td>{card.title}</td>
-                <td>{card.to}</td>
-                <td>{card.amount} assignments</td>
-                <td>
-                  <span className={`badge badge-${card.status}`}>
-                    {card.status.toUpperCase()}
-                  </span>
-                </td>
-                <td>{new Date(card.createdAt).toLocaleDateString()}</td>
-                <td>
+            {cards.map(card => {
+              const isExpired = card.expiresAt && new Date(card.expiresAt) < new Date();
+              return (
+                <tr key={card.id} style={isExpired ? { opacity: 0.6 } : {}}>
+                  <td>{card.title}</td>
+                  <td>{card.to}</td>
+                  <td>{card.amount} assignments</td>
+                  <td>
+                    <span className={`badge badge-${card.status}`}>
+                      {card.status.toUpperCase()}
+                    </span>
+                    {isExpired && (
+                      <span className="badge badge-revoked" style={{ marginLeft: '4px' }}>
+                        EXPIRED
+                      </span>
+                    )}
+                  </td>
+                  <td>{new Date(card.createdAt).toLocaleDateString()}</td>
+                  <td>
+                    {card.expiresAt 
+                      ? new Date(card.expiresAt).toLocaleDateString()
+                      : 'No expiration'}
+                  </td>
+                  <td>
                   <div style={{ display: 'flex', gap: '8px' }}>
                     <button 
                       className="btn btn-primary"
@@ -272,7 +300,8 @@ function CardManagement() {
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       )}

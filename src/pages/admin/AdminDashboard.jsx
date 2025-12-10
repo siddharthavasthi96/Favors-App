@@ -4,6 +4,7 @@ import CardManagement from '../../components/admin/CardManagement';
 import SubmissionManagement from '../../components/admin/SubmissionManagement';
 import CouponManagement from '../../components/admin/CouponManagement';
 import CardRequestManagement from '../../components/admin/CardRequestManagement';
+import ActivityLog from '../../components/admin/ActivityLog';
 
 function AdminDashboard() {
   const navigate = useNavigate();
@@ -108,6 +109,20 @@ function AdminDashboard() {
           >
             Card Requests
           </button>
+          <button
+            onClick={() => setActiveTab('activityLog')}
+            style={{
+              padding: '16px 24px',
+              border: 'none',
+              background: activeTab === 'activityLog' ? 'white' : 'transparent',
+              borderBottom: activeTab === 'activityLog' ? '3px solid #007bff' : 'none',
+              cursor: 'pointer',
+              fontWeight: activeTab === 'activityLog' ? '600' : '400',
+              fontSize: '16px'
+            }}
+          >
+            Activity Log
+          </button>
         </div>
 
         <div style={{ padding: '24px' }}>
@@ -115,6 +130,7 @@ function AdminDashboard() {
           {activeTab === 'submissions' && <SubmissionManagement />}
           {activeTab === 'coupons' && <CouponManagement />}
           {activeTab === 'cardRequests' && <CardRequestManagement />}
+          {activeTab === 'activityLog' && <ActivityLog />}
         </div>
       </div>
     </div>

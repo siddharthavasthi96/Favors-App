@@ -31,12 +31,6 @@ function HomePage() {
           >
             Request a Card
           </button>
-          <button 
-            className="btn btn-primary"
-            onClick={() => navigate('/admin')}
-          >
-            Admin Login
-          </button>
         </div>
 
         <div style={{ marginTop: '40px', padding: '20px', background: '#f8f9fa', borderRadius: '8px' }}>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { db } from '../../firebase';
-import { collection, getDocs, updateDoc, doc, query, orderBy, increment } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc, query, orderBy, increment, addDoc } from 'firebase/firestore';
 
 function SubmissionManagement() {
   const [submissions, setSubmissions] = useState([]);
@@ -8,6 +8,8 @@ function SubmissionManagement() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [filter, setFilter] = useState('all');
+  const [classFilter, setClassFilter] = useState('');
+  const [dateFilter, setDateFilter] = useState('');
 
   useEffect(() => {
     fetchSubmissions();
@@ -50,6 +52,13 @@ function SubmissionManagement() {
         amount: increment(-submission.amountRequested)
       });
 
+      // Create event log
+      await addDoc(collection(db, 'events'), {
+        type: 'submissionApproved',
+        data: { submissionId, cardId: submission.cardId, amount: submission.amountRequested },
+        timestamp: new Date().toISOString()
+      });
+
       setSuccess('Submission approved successfully!');
       fetchSubmissions();
     } catch (err) {
@@ -65,9 +74,18 @@ function SubmissionManagement() {
     
     try {
       setLoading(true);
+      const submission = submissions.find(s => s.id === submissionId);
+      
       await updateDoc(doc(db, 'submissions', submissionId), {
         status: 'denied',
         deniedAt: new Date().toISOString()
+      });
+
+      // Create event log
+      await addDoc(collection(db, 'events'), {
+        type: 'submissionDenied',
+        data: { submissionId, cardId: submission.cardId },
+        timestamp: new Date().toISOString()
       });
 
       setSuccess('Submission denied.');
@@ -103,8 +121,19 @@ function SubmissionManagement() {
   };
 
   const filteredSubmissions = submissions.filter(sub => {
-    if (filter === 'all') return true;
-    return sub.status === filter;
+    // Filter by status
+    if (filter !== 'all' && sub.status !== filter) return false;
+    
+    // Filter by class
+    if (classFilter && !sub.class.toLowerCase().includes(classFilter.toLowerCase())) return false;
+    
+    // Filter by date
+    if (dateFilter) {
+      const subDate = new Date(sub.createdAt).toISOString().split('T')[0];
+      if (subDate !== dateFilter) return false;
+    }
+    
+    return true;
   });
 
   return (
@@ -122,35 +151,65 @@ function SubmissionManagement() {
       {error && <div className="alert alert-error">{error}</div>}
       {success && <div className="alert alert-success">{success}</div>}
 
-      <div style={{ marginBottom: '20px', display: 'flex', gap: '8px' }}>
-        <button 
-          className={filter === 'all' ? 'btn btn-primary' : 'btn btn-primary'}
-          onClick={() => setFilter('all')}
-          style={{ opacity: filter === 'all' ? 1 : 0.6 }}
-        >
-          All
-        </button>
-        <button 
-          className="btn btn-primary"
-          onClick={() => setFilter('pending')}
-          style={{ opacity: filter === 'pending' ? 1 : 0.6 }}
-        >
-          Pending
-        </button>
-        <button 
-          className="btn btn-primary"
-          onClick={() => setFilter('approved')}
-          style={{ opacity: filter === 'approved' ? 1 : 0.6 }}
-        >
-          Approved
-        </button>
-        <button 
-          className="btn btn-primary"
-          onClick={() => setFilter('denied')}
-          style={{ opacity: filter === 'denied' ? 1 : 0.6 }}
-        >
-          Denied
-        </button>
+      <div style={{ marginBottom: '20px' }}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '12px' }}>
+          <button 
+            className={filter === 'all' ? 'btn btn-primary' : 'btn btn-primary'}
+            onClick={() => setFilter('all')}
+            style={{ opacity: filter === 'all' ? 1 : 0.6 }}
+          >
+            All
+          </button>
+          <button 
+            className="btn btn-primary"
+            onClick={() => setFilter('pending')}
+            style={{ opacity: filter === 'pending' ? 1 : 0.6 }}
+          >
+            Pending
+          </button>
+          <button 
+            className="btn btn-primary"
+            onClick={() => setFilter('approved')}
+            style={{ opacity: filter === 'approved' ? 1 : 0.6 }}
+          >
+            Approved
+          </button>
+          <button 
+            className="btn btn-primary"
+            onClick={() => setFilter('denied')}
+            style={{ opacity: filter === 'denied' ? 1 : 0.6 }}
+          >
+            Denied
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ flex: 1 }}>
+            <input
+              type="text"
+              placeholder="Filter by class..."
+              value={classFilter}
+              onChange={(e) => setClassFilter(e.target.value)}
+              style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <input
+              type="date"
+              value={dateFilter}
+              onChange={(e) => setDateFilter(e.target.value)}
+              style={{ width: '100%', padding: '8px', border: '1px solid #ddd', borderRadius: '4px' }}
+            />
+          </div>
+          {(classFilter || dateFilter) && (
+            <button 
+              className="btn btn-primary"
+              onClick={() => { setClassFilter(''); setDateFilter(''); }}
+            >
+              Clear Filters
+            </button>
+          )}
+        </div>
       </div>
 
       {loading && <div className="loading">Loading...</div>}
