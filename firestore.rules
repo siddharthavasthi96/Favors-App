@@ -1,0 +1,75 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Cards collection
+    match /cards/{cardId} {
+      // Public can read cards for status check
+      allow read: if true;
+      
+      // No one can directly write cards (admin uses backend)
+      allow write: if false;
+    }
+    
+    // Submissions collection
+    match /submissions/{submissionId} {
+      // Public can read their own submissions
+      allow read: if true;
+      
+      // Public can create submissions (validated by QR token existence)
+      allow create: if request.resource.data.status == 'pending'
+                    && request.resource.data.cardId is string
+                    && request.resource.data.class is string
+                    && request.resource.data.assignmentType is string;
+      
+      // No one can update/delete submissions directly
+      allow update, delete: if false;
+    }
+    
+    // Card Requests collection
+    match /cardRequests/{requestId} {
+      // Public can read their own requests
+      allow read: if true;
+      
+      // Public can create card requests
+      allow create: if request.resource.data.status == 'pending'
+                    && request.resource.data.name is string
+                    && request.resource.data.class is string;
+      
+      // No one can update/delete card requests directly
+      allow update, delete: if false;
+    }
+    
+    // Coupons collection
+    match /coupons/{couponId} {
+      // Public can read coupons (for validation)
+      allow read: if true;
+      
+      // Public can update usesLeft (for coupon redemption)
+      allow update: if request.resource.data.diff(resource.data).affectedKeys()
+                    .hasOnly(['usesLeft'])
+                    && request.resource.data.usesLeft < resource.data.usesLeft;
+      
+      // No creation or deletion
+      allow create, delete: if false;
+    }
+    
+    // Events collection (admin audit log)
+    match /events/{eventId} {
+      // Public can create events
+      allow create: if true;
+      
+      // No one can read, update or delete events
+      allow read, update, delete: if false;
+    }
+    
+    // Config collection (for admin security key)
+    match /config/{configId} {
+      // Public can read config (for admin login)
+      allow read: if true;
+      
+      // No one can write config
+      allow write: if false;
+    }
+  }
+}

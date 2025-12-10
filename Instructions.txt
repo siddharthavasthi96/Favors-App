@@ -1,0 +1,62 @@
+# Final Product Roadmap: QR Assignment Voucher System
+
+Build an Android admin app and public web app using Firebase Firestore (no Cloud Functions). 
+Cards with QR codes act as vouchers for assignment help requests.
+
+## MVP Features (Version 1.0)
+
+### 1. Core Data Models
+cards: { id, title, to (name), amount ($, assignments), qrToken, status (active/revoked), createdAt, expiresAt? }
+submissions: { id, cardId, class, assignmentType, amountRequested, promoCode?, phone?, email?, status (pending/approved/denied), createdAt }
+coupons: { code, discount, usesLeft, createdAt }
+cardRequests: { id, name, class, phone?, email?, reason?, status (pending/approved/denied), createdAt }
+events: { type (cardCreated, submissionApproved, etc), data, timestamp } [admin audit log]
+
+### 2. Public Web App (/)
+- QR Scan Flow: User scans QR → opens yourapp.com/?qr=TOKEN → verifies card exists/active → shows pre-filled form with card details
+- Request Form:
+  - Shows remaining card balance
+  - Class, assignment type (online only), amount requested
+  - Promo code (validates & applies discount)
+  - Phone (required) OR email (required, one sufficient)
+- Request Card Page (/request-card): Short form (name, class, contact, reason) → creates cardRequests doc
+- Status Pages: /status/{shortId} for submission/card request status (no login needed)
+
+### 3. Web Admin (/admin)
+- Security: Enter Firestore-stored security key
+- Card Management: Create (generate PDF w/ QR), revoke, list w/ filters
+- Submissions: List, approve/deny, filter by status/class/date
+- Coupons: Create/edit/delete one-time codes
+- Card Requests: Review/approve (auto-creates card) or deny
+- Exports: CSV of submissions
+
+### 4. Android Admin App (Owner's phone only)
+- Push notifications for new submissions/card requests
+- Dashboard: Recent submissions (swipe approve/deny), card requests tab
+- Quick filters, search, activity log viewer
+
+## Security (Firestore Rules)
+- Public: read cards (status check), create submissions/cardRequests (QR validated)
+- Admin (web/Android): full cards/coupons + approve/deny submissions
+- No client can edit card data post-creation
+- QR tokens indexed, not document IDs
+
+## Phase 2 Enhancements
+- Rate limiting/CAPTCHA on public forms
+- Card expiration & max redemptions
+- Submission analytics dashboard
+- Multi-language support
+- Bulk card generation
+
+## Tech Stack
+Frontend: React/Vue (web), Jetpack Compose (Android)
+Backend: Firestore + security rules only
+QR: Unique random token per card → PDF generation (html2canvas/Puppeteer client-side)
+Notifications: FCM direct from Firestore listeners
+Deployment: Firebase Hosting + Android Play Store (private)
+
+## Success Metrics
+- Cards created/revoked per week
+- Submission → approval rate
+- Average time to approve submissions
+- Card request conversion rate
